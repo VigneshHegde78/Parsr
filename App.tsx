@@ -7,23 +7,37 @@ import {
 	TouchableOpacity,
 	View,
 	Image,
-	ScrollView,
 	ActivityIndicator,
+	SafeAreaView,
 } from "react-native";
-import TextRecognition from "@react-native-ml-kit/text-recognition"; // <--- THE BRAIN
+import TextRecognition from "@react-native-ml-kit/text-recognition";
+import AsyncStorage from "@react-native-async-storage/async-storage"; // <--- Import this
+import { parseReceipt } from "./src/utils/parser";
+import { HistoryList } from "./src/components/HistoryList"; // <--- Import this
 
 export default function App() {
 	const [permission, requestPermission] = useCameraPermissions();
 	const [photo, setPhoto] = useState<string | null>(null);
 	const [loading, setLoading] = useState(false);
-	const [extractedText, setExtractedText] = useState(""); // Store the AI result
 	const cameraRef = useRef<CameraView>(null);
+
+	// Navigation State
+	const [view, setView] = useState<"CAMERA" | "HISTORY">("CAMERA");
+	const [refreshTrigger, setRefreshTrigger] = useState(0); // To reload history
+
+	const [parsedData, setParsedData] = useState<{
+		merchant: string | null;
+		total: string | null;
+		date: string | null;
+	} | null>(null);
 
 	if (!permission) return <View />;
 	if (!permission.granted) {
 		return (
 			<View style={styles.container}>
-				<Text style={{ textAlign: "center" }}>Permission required</Text>
+				<Text style={{ textAlign: "center", color: "white", marginBottom: 10 }}>
+					Permission required
+				</Text>
 				<Button onPress={requestPermission} title="Grant Permission" />
 			</View>
 		);
@@ -39,70 +53,106 @@ export default function App() {
 		}
 	};
 
-	// --- THE AI FUNCTION ---
 	const analyzeReceipt = async () => {
 		if (!photo) return;
-
 		setLoading(true);
 		try {
-			// 1. Pass the image path to ML Kit
 			const result = await TextRecognition.recognize(photo);
-
-			// 2. Save the raw text found
-			setExtractedText(result.text);
+			const smartData = parseReceipt(result.text);
+			setParsedData(smartData);
 		} catch (error) {
 			console.error(error);
-			setExtractedText("Error analyzing receipt.");
 		} finally {
 			setLoading(false);
 		}
 	};
 
-	// --- PREVIEW SCREEN ---
-	if (photo) {
-		return (
-			<View style={styles.container}>
-				<Image source={{ uri: photo }} style={styles.preview} />
+	// --- SAVE FUNCTION ---
+	const saveToHistory = async () => {
+		if (!parsedData) return;
 
-				{/* If we have text, show it. Otherwise show buttons */}
-				{extractedText ? (
-					<View style={styles.resultContainer}>
-						<Text style={styles.header}>Raw AI Output:</Text>
-						<ScrollView style={styles.scroll}>
-							<Text style={styles.rawText}>{extractedText}</Text>
-						</ScrollView>
-						<Button
-							title="Scan Another"
-							onPress={() => {
-								setPhoto(null);
-								setExtractedText("");
-							}}
-						/>
-					</View>
-				) : (
-					<View style={styles.buttonContainer}>
-						{loading ? (
-							<ActivityIndicator size="large" color="white" />
-						) : (
-							<>
+		const newItem = {
+			id: Date.now().toString(),
+			...parsedData,
+			total: parsedData.total || "0.00",
+		};
+
+		// 1. Get existing
+		const existing = await AsyncStorage.getItem("receipts");
+		const list = existing ? JSON.parse(existing) : [];
+
+		// 2. Add new
+		list.unshift(newItem); // Add to top
+
+		// 3. Save back
+		await AsyncStorage.setItem("receipts", JSON.stringify(list));
+
+		// 4. Reset UI
+		alert("Saved!");
+		setPhoto(null);
+		setParsedData(null);
+		setRefreshTrigger((prev) => prev + 1); // Tell HistoryList to reload
+	};
+
+	// --- RENDER CONTENT BASED ON TAB ---
+	const renderContent = () => {
+		if (view === "HISTORY") {
+			return <HistoryList refreshTrigger={refreshTrigger} />;
+		}
+
+		if (photo) {
+			return (
+				<View style={styles.container}>
+					<Image source={{ uri: photo }} style={styles.preview} />
+					{parsedData ? (
+						<View style={styles.resultContainer}>
+							<Text style={styles.header}>✅ Scanned</Text>
+							<View style={styles.card}>
+								<Text style={styles.label}>Merchant</Text>
+								<Text style={styles.value}>{parsedData.merchant}</Text>
+								<View style={styles.row}>
+									<Text style={styles.value}>
+										{parsedData.date || "No Date"}
+									</Text>
+									<Text style={[styles.value, { color: "green" }]}>
+										${parsedData.total || "0.00"}
+									</Text>
+								</View>
+							</View>
+							<View style={styles.actionRow}>
 								<Button
-									title="Retake"
+									title="Discard"
 									color="red"
-									onPress={() => setPhoto(null)}
+									onPress={() => {
+										setPhoto(null);
+										setParsedData(null);
+									}}
 								/>
-								{/* Run the AI */}
-								<Button title="Analyze Receipt" onPress={analyzeReceipt} />
-							</>
-						)}
-					</View>
-				)}
-			</View>
-		);
-	}
+								{/* CALL SAVE FUNCTION */}
+								<Button title="Save" onPress={saveToHistory} />
+							</View>
+						</View>
+					) : (
+						<View style={styles.buttonContainer}>
+							{loading ? (
+								<ActivityIndicator size="large" color="white" />
+							) : (
+								<>
+									<Button
+										title="Retake"
+										color="red"
+										onPress={() => setPhoto(null)}
+									/>
+									<Button title="Analyze" onPress={analyzeReceipt} />
+								</>
+							)}
+						</View>
+					)}
+				</View>
+			);
+		}
 
-	// --- CAMERA SCREEN ---
-	return (
-		<View style={styles.container}>
+		return (
 			<CameraView style={styles.camera} ref={cameraRef}>
 				<View style={styles.buttonContainer}>
 					<TouchableOpacity style={styles.captureBtn} onPress={takePicture}>
@@ -110,7 +160,36 @@ export default function App() {
 					</TouchableOpacity>
 				</View>
 			</CameraView>
-		</View>
+		);
+	};
+
+	return (
+		<SafeAreaView style={{ flex: 1, backgroundColor: "black" }}>
+			{/* MAIN CONTENT AREA */}
+			<View style={{ flex: 1 }}>{renderContent()}</View>
+
+			{/* BOTTOM TAB BAR */}
+			<View style={styles.tabBar}>
+				<TouchableOpacity
+					onPress={() => setView("CAMERA")}
+					style={styles.tabItem}
+				>
+					<Text style={[styles.tabText, view === "CAMERA" && styles.activeTab]}>
+						📷 Scan
+					</Text>
+				</TouchableOpacity>
+				<TouchableOpacity
+					onPress={() => setView("HISTORY")}
+					style={styles.tabItem}
+				>
+					<Text
+						style={[styles.tabText, view === "HISTORY" && styles.activeTab]}
+					>
+						📜 History
+					</Text>
+				</TouchableOpacity>
+			</View>
+		</SafeAreaView>
 	);
 }
 
@@ -121,7 +200,6 @@ const styles = StyleSheet.create({
 	buttonContainer: {
 		flex: 1,
 		flexDirection: "row",
-		backgroundColor: "transparent",
 		margin: 64,
 		justifyContent: "space-around",
 		alignItems: "flex-end",
@@ -140,6 +218,16 @@ const styles = StyleSheet.create({
 		borderRadius: 30,
 		backgroundColor: "white",
 	},
+	card: {
+		backgroundColor: "#f9f9f9",
+		padding: 20,
+		borderRadius: 15,
+		marginBottom: 20,
+	},
+	label: { color: "gray", fontSize: 12, textTransform: "uppercase" },
+	value: { fontSize: 18, fontWeight: "bold", marginBottom: 15 },
+	row: { flexDirection: "row", justifyContent: "space-between", width: "100%" },
+	actionRow: { flexDirection: "row", justifyContent: "space-around" },
 	resultContainer: {
 		position: "absolute",
 		top: 50,
@@ -157,12 +245,17 @@ const styles = StyleSheet.create({
 		marginBottom: 10,
 		color: "black",
 	},
-	scroll: {
-		flex: 1,
-		marginBottom: 20,
-		backgroundColor: "#f0f0f0",
-		padding: 10,
-		borderRadius: 10,
+
+	// NEW STYLES
+	tabBar: {
+		flexDirection: "row",
+		backgroundColor: "#111",
+		paddingBottom: 20,
+		paddingTop: 15,
+		borderTopWidth: 1,
+		borderTopColor: "#333",
 	},
-	rawText: { fontFamily: "monospace", fontSize: 12 },
+	tabItem: { flex: 1, alignItems: "center" },
+	tabText: { color: "gray", fontSize: 16, fontWeight: "600" },
+	activeTab: { color: "white" },
 });
