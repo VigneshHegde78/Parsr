@@ -9,11 +9,13 @@ import {
 	Image,
 	ActivityIndicator,
 	SafeAreaView,
+	TextInput,
+	ScrollView,
 } from "react-native";
 import TextRecognition from "@react-native-ml-kit/text-recognition";
-import AsyncStorage from "@react-native-async-storage/async-storage"; // <--- Import this
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { parseReceipt } from "./src/utils/parser";
-import { HistoryList } from "./src/components/HistoryList"; // <--- Import this
+import { HistoryList } from "./src/components/HistoryList";
 import { MaterialIcons } from "@expo/vector-icons";
 
 export default function App() {
@@ -24,36 +26,32 @@ export default function App() {
 
 	// Navigation State
 	const [view, setView] = useState<"CAMERA" | "SPENDS">("SPENDS");
-	const [refreshTrigger, setRefreshTrigger] = useState(0); // To reload history
+	const [refreshTrigger, setRefreshTrigger] = useState(0);
 
+	// --- NEW: Editable State ---
 	const [parsedData, setParsedData] = useState<{
-		merchant: string | null;
-		total: string | null;
-		date: string | null;
+		merchant: string;
+		total: string;
+		date: string;
+		category: string;
 	} | null>(null);
+
+	const [paymentMethod, setPaymentMethod] = useState<"UPI" | "Cash" | "Card">(
+		"UPI"
+	);
 
 	if (!permission) return <View />;
 	if (!permission.granted) {
 		return (
 			<View style={styles.container}>
-				<Text
-					style={{
-						textAlign: "center",
-						color: "white",
-						marginBottom: 10,
-						fontSize: 18,
-						fontWeight: "bold",
-					}}
-				>
-					Access your camera.
-				</Text>
+				<Text style={styles.permTitle}>Access your camera.</Text>
 				<MaterialIcons
 					name="camera-front"
 					size={100}
 					color="white"
 					style={{ textAlign: "center", margin: 20 }}
 				/>
-				<Text style={{ textAlign: "center", color: "white", marginBottom: 10 }}>
+				<Text style={styles.permText}>
 					"Parsr" would like to access your camera to scan receipts.
 				</Text>
 				<Button onPress={requestPermission} title="Grant Permission" />
@@ -77,7 +75,14 @@ export default function App() {
 		try {
 			const result = await TextRecognition.recognize(photo);
 			const smartData = parseReceipt(result.text);
-			setParsedData(smartData);
+
+			// Load data into editable state
+			setParsedData({
+				merchant: smartData.merchant || "",
+				total: smartData.total || "",
+				date: smartData.date || "",
+				category: smartData.category || "Other",
+			});
 		} catch (error) {
 			console.error(error);
 		} finally {
@@ -85,34 +90,28 @@ export default function App() {
 		}
 	};
 
-	// --- SAVE FUNCTION ---
 	const saveToHistory = async () => {
 		if (!parsedData) return;
 
 		const newItem = {
 			id: Date.now().toString(),
-			...parsedData,
+			...parsedData, // Saves the EDITED values
+			paymentMethod, // Saves the selected method
 			total: parsedData.total || "0.00",
 		};
 
-		// 1. Get existing
 		const existing = await AsyncStorage.getItem("receipts");
 		const list = existing ? JSON.parse(existing) : [];
-
-		// 2. Add new
-		list.unshift(newItem); // Add to top
-
-		// 3. Save back
+		list.unshift(newItem);
 		await AsyncStorage.setItem("receipts", JSON.stringify(list));
 
-		// 4. Reset UI
 		alert("Saved!");
 		setPhoto(null);
 		setParsedData(null);
-		setRefreshTrigger((prev) => prev + 1); // Tell HistoryList to reload
+		setRefreshTrigger((prev) => prev + 1);
 	};
 
-	// --- RENDER CONTENT BASED ON TAB ---
+	// --- RENDER CONTENT ---
 	const renderContent = () => {
 		if (view === "SPENDS") {
 			return <HistoryList refreshTrigger={refreshTrigger} />;
@@ -122,30 +121,109 @@ export default function App() {
 			return (
 				<View style={styles.container}>
 					<Image source={{ uri: photo }} style={styles.preview} />
+
+					{/* --- EDITABLE REVIEW SCREEN --- */}
 					{parsedData ? (
 						<View style={styles.resultContainer}>
-							<Text style={styles.header}>✅ Scanned</Text>
-							<View style={styles.card}>
+							<Text style={styles.header}>✏️ Review & Edit</Text>
+
+							<ScrollView showsVerticalScrollIndicator={false}>
+								{/* 1. Merchant Input */}
 								<Text style={styles.label}>Merchant</Text>
-								<Text style={styles.value}>{parsedData.merchant}</Text>
+								<TextInput
+									style={styles.input}
+									value={parsedData.merchant}
+									onChangeText={(text) =>
+										setParsedData({ ...parsedData, merchant: text })
+									}
+								/>
+
+								{/* 2. Total & Date Row */}
 								<View style={styles.row}>
-									<Text style={styles.value}>
-										{parsedData.date || "No Date"}
-									</Text>
-									<Text style={[styles.value, { color: "green" }]}>
-										${parsedData.total || "0.00"}
-									</Text>
+									<View style={{ flex: 1, marginRight: 10 }}>
+										<Text style={styles.label}>Total ($)</Text>
+										<TextInput
+											style={[
+												styles.input,
+												{ color: "green", fontWeight: "bold" },
+											]}
+											value={parsedData.total}
+											keyboardType="numeric"
+											onChangeText={(text) =>
+												setParsedData({ ...parsedData, total: text })
+											}
+										/>
+									</View>
+									<View style={{ flex: 1 }}>
+										<Text style={styles.label}>Date</Text>
+										<TextInput
+											style={styles.input}
+											value={parsedData.date}
+											onChangeText={(text) =>
+												setParsedData({ ...parsedData, date: text })
+											}
+										/>
+									</View>
 								</View>
-							</View>
+
+								{/* 3. Category Chips */}
+								<Text style={styles.label}>Category</Text>
+								<View style={styles.chipContainer}>
+									{["Food", "Travel", "Stay", "Shopping", "Other"].map(
+										(cat) => (
+											<TouchableOpacity
+												key={cat}
+												onPress={() =>
+													setParsedData({ ...parsedData, category: cat })
+												}
+												style={[
+													styles.chip,
+													parsedData.category === cat && styles.activeChip,
+												]}
+											>
+												<Text
+													style={[
+														styles.chipText,
+														parsedData.category === cat &&
+															styles.activeChipText,
+													]}
+												>
+													{cat}
+												</Text>
+											</TouchableOpacity>
+										)
+									)}
+								</View>
+
+								{/* 4. Payment Chips */}
+								<Text style={styles.label}>Paid Via</Text>
+								<View style={styles.chipContainer}>
+									{["UPI", "Card", "Cash"].map((method) => (
+										<TouchableOpacity
+											key={method}
+											onPress={() => setPaymentMethod(method as any)}
+											style={[
+												styles.chip,
+												paymentMethod === method && styles.activeChip,
+											]}
+										>
+											<Text
+												style={[
+													styles.chipText,
+													paymentMethod === method && styles.activeChipText,
+												]}
+											>
+												{method}
+											</Text>
+										</TouchableOpacity>
+									))}
+								</View>
+							</ScrollView>
+
+							{/* Action Buttons */}
 							<View style={styles.actionRow}>
 								<TouchableOpacity
-									style={{
-										backgroundColor: "red",
-										padding: 10,
-										borderRadius: 8,
-										flexDirection: "row",
-										alignItems: "center",
-									}}
+									style={[styles.actionBtn, { backgroundColor: "red" }]}
 									onPress={() => {
 										setPhoto(null);
 										setParsedData(null);
@@ -156,60 +234,39 @@ export default function App() {
 										size={24}
 										color="white"
 									/>
-									<Text style={{ color: "white", marginLeft: 5 }}>Discard</Text>
+									<Text style={styles.actionBtnText}>Discard</Text>
 								</TouchableOpacity>
 
-								{/* CALL SAVE FUNCTION */}
 								<TouchableOpacity
-									style={{
-										backgroundColor: "green",
-										padding: 10,
-										borderRadius: 8,
-										flexDirection: "row",
-										alignItems: "center",
-									}}
+									style={[styles.actionBtn, { backgroundColor: "green" }]}
 									onPress={saveToHistory}
 								>
 									<MaterialIcons name="save" size={24} color="white" />
-									<Text style={{ color: "white", marginLeft: 5 }}>Save</Text>
+									<Text style={styles.actionBtnText}>Save</Text>
 								</TouchableOpacity>
 							</View>
 						</View>
 					) : (
+						// Loading / Analyze Actions
 						<View style={styles.buttonContainer}>
 							{loading ? (
 								<ActivityIndicator size="large" color="white" />
 							) : (
 								<>
 									<TouchableOpacity
-										style={{
-											backgroundColor: "red",
-											padding: 10,
-											borderRadius: 8,
-											flexDirection: "row",
-											alignItems: "center",
-										}}
+										style={[styles.actionBtn, { backgroundColor: "red" }]}
 										onPress={() => setPhoto(null)}
 									>
 										<MaterialIcons name="repeat" size={24} color="white" />
-										<Text style={{ color: "white", marginLeft: 5 }}>
-											Retake
-										</Text>
+										<Text style={styles.actionBtnText}>Retake</Text>
 									</TouchableOpacity>
+
 									<TouchableOpacity
-										style={{
-											backgroundColor: "#0077b6",
-											padding: 10,
-											borderRadius: 8,
-											flexDirection: "row",
-											alignItems: "center",
-										}}
+										style={[styles.actionBtn, { backgroundColor: "#0077b6" }]}
 										onPress={analyzeReceipt}
 									>
 										<MaterialIcons name="compare" size={24} color="white" />
-										<Text style={{ color: "white", marginLeft: 5 }}>
-											Analyze
-										</Text>
+										<Text style={styles.actionBtnText}>Analyze</Text>
 									</TouchableOpacity>
 								</>
 							)}
@@ -232,10 +289,8 @@ export default function App() {
 
 	return (
 		<SafeAreaView style={{ flex: 1, backgroundColor: "black" }}>
-			{/* MAIN CONTENT AREA */}
 			<View style={{ flex: 1 }}>{renderContent()}</View>
 
-			{/* BOTTOM TAB BAR */}
 			{view === "SPENDS" ? (
 				<View style={styles.tabBar}>
 					<TouchableOpacity
@@ -265,6 +320,18 @@ const styles = StyleSheet.create({
 	container: { flex: 1, backgroundColor: "black", justifyContent: "center" },
 	camera: { flex: 1 },
 	preview: { flex: 1, resizeMode: "contain", opacity: 0.6 },
+
+	// Permission Styles
+	permTitle: {
+		textAlign: "center",
+		color: "white",
+		marginBottom: 10,
+		fontSize: 18,
+		fontWeight: "bold",
+	},
+	permText: { textAlign: "center", color: "white", marginBottom: 10 },
+
+	// Buttons
 	buttonContainer: {
 		flex: 1,
 		flexDirection: "row",
@@ -286,22 +353,21 @@ const styles = StyleSheet.create({
 		borderRadius: 30,
 		backgroundColor: "white",
 	},
-	card: {
-		backgroundColor: "#f9f9f9",
-		padding: 20,
-		borderRadius: 15,
-		marginBottom: 20,
+	actionBtn: {
+		padding: 10,
+		borderRadius: 8,
+		flexDirection: "row",
+		alignItems: "center",
 	},
-	label: { color: "gray", fontSize: 12, textTransform: "uppercase" },
-	value: { fontSize: 18, fontWeight: "bold", marginBottom: 15 },
-	row: { flexDirection: "row", justifyContent: "space-between", width: "100%" },
-	actionRow: { flexDirection: "row", justifyContent: "space-around" },
+	actionBtnText: { color: "white", marginLeft: 5 },
+
+	// Result / Edit Card
 	resultContainer: {
 		position: "absolute",
-		top: 50,
-		left: 20,
-		right: 20,
-		bottom: 50,
+		top: 40,
+		left: 15,
+		right: 15,
+		bottom: 40,
 		backgroundColor: "white",
 		borderRadius: 20,
 		padding: 20,
@@ -310,11 +376,55 @@ const styles = StyleSheet.create({
 	header: {
 		fontSize: 20,
 		fontWeight: "bold",
-		marginBottom: 10,
+		marginBottom: 15,
 		color: "black",
+		textAlign: "center",
+	},
+	label: {
+		color: "gray",
+		fontSize: 12,
+		textTransform: "uppercase",
+		marginTop: 10,
+		marginBottom: 5,
+	},
+	input: {
+		backgroundColor: "#f0f0f0",
+		padding: 12,
+		borderRadius: 8,
+		fontSize: 16,
+		borderWidth: 1,
+		borderColor: "#ddd",
+	},
+	row: { flexDirection: "row", justifyContent: "space-between", width: "100%" },
+	actionRow: {
+		flexDirection: "row",
+		justifyContent: "space-around",
+		marginTop: 20,
+		paddingTop: 10,
+		borderTopWidth: 1,
+		borderTopColor: "#eee",
 	},
 
-	// NEW STYLES
+	// Chip Styles
+	chipContainer: {
+		flexDirection: "row",
+		flexWrap: "wrap",
+		gap: 8,
+		marginTop: 5,
+	},
+	chip: {
+		paddingVertical: 6,
+		paddingHorizontal: 12,
+		borderRadius: 20,
+		backgroundColor: "#eee",
+		borderWidth: 1,
+		borderColor: "#ddd",
+	},
+	activeChip: { backgroundColor: "#0077b6", borderColor: "#0077b6" },
+	chipText: { color: "black", fontSize: 12 },
+	activeChipText: { color: "white", fontWeight: "bold" },
+
+	// Navigation
 	tabBar: {
 		position: "absolute",
 		left: 120,
