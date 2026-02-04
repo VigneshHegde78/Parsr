@@ -31,7 +31,7 @@ export const HistoryList = ({ refreshTrigger }: { refreshTrigger: number }) => {
 	return (
 		<View style={styles.container}>
 			<View style={styles.headerRow}>
-				<Text style={styles.title}>Spending History</Text>
+				<Text style={styles.title}>Spendings</Text>
 				<TouchableOpacity onPress={clearHistory}>
 					<Text style={{ color: "red" }}>Clear All</Text>
 				</TouchableOpacity>

@@ -14,6 +14,7 @@ import TextRecognition from "@react-native-ml-kit/text-recognition";
 import AsyncStorage from "@react-native-async-storage/async-storage"; // <--- Import this
 import { parseReceipt } from "./src/utils/parser";
 import { HistoryList } from "./src/components/HistoryList"; // <--- Import this
+import { MaterialIcons } from "@expo/vector-icons";
 
 export default function App() {
 	const [permission, requestPermission] = useCameraPermissions();
@@ -22,7 +23,7 @@ export default function App() {
 	const cameraRef = useRef<CameraView>(null);
 
 	// Navigation State
-	const [view, setView] = useState<"CAMERA" | "HISTORY">("CAMERA");
+	const [view, setView] = useState<"CAMERA" | "SPENDS">("SPENDS");
 	const [refreshTrigger, setRefreshTrigger] = useState(0); // To reload history
 
 	const [parsedData, setParsedData] = useState<{
@@ -35,8 +36,25 @@ export default function App() {
 	if (!permission.granted) {
 		return (
 			<View style={styles.container}>
+				<Text
+					style={{
+						textAlign: "center",
+						color: "white",
+						marginBottom: 10,
+						fontSize: 18,
+						fontWeight: "bold",
+					}}
+				>
+					Access your camera.
+				</Text>
+				<MaterialIcons
+					name="camera-front"
+					size={100}
+					color="white"
+					style={{ textAlign: "center", margin: 20 }}
+				/>
 				<Text style={{ textAlign: "center", color: "white", marginBottom: 10 }}>
-					Permission required
+					"Parsr" would like to access your camera to scan receipts.
 				</Text>
 				<Button onPress={requestPermission} title="Grant Permission" />
 			</View>
@@ -96,7 +114,7 @@ export default function App() {
 
 	// --- RENDER CONTENT BASED ON TAB ---
 	const renderContent = () => {
-		if (view === "HISTORY") {
+		if (view === "SPENDS") {
 			return <HistoryList refreshTrigger={refreshTrigger} />;
 		}
 
@@ -120,16 +138,41 @@ export default function App() {
 								</View>
 							</View>
 							<View style={styles.actionRow}>
-								<Button
-									title="Discard"
-									color="red"
+								<TouchableOpacity
+									style={{
+										backgroundColor: "red",
+										padding: 10,
+										borderRadius: 8,
+										flexDirection: "row",
+										alignItems: "center",
+									}}
 									onPress={() => {
 										setPhoto(null);
 										setParsedData(null);
 									}}
-								/>
+								>
+									<MaterialIcons
+										name="delete-outline"
+										size={24}
+										color="white"
+									/>
+									<Text style={{ color: "white", marginLeft: 5 }}>Discard</Text>
+								</TouchableOpacity>
+
 								{/* CALL SAVE FUNCTION */}
-								<Button title="Save" onPress={saveToHistory} />
+								<TouchableOpacity
+									style={{
+										backgroundColor: "green",
+										padding: 10,
+										borderRadius: 8,
+										flexDirection: "row",
+										alignItems: "center",
+									}}
+									onPress={saveToHistory}
+								>
+									<MaterialIcons name="save" size={24} color="white" />
+									<Text style={{ color: "white", marginLeft: 5 }}>Save</Text>
+								</TouchableOpacity>
 							</View>
 						</View>
 					) : (
@@ -138,12 +181,36 @@ export default function App() {
 								<ActivityIndicator size="large" color="white" />
 							) : (
 								<>
-									<Button
-										title="Retake"
-										color="red"
+									<TouchableOpacity
+										style={{
+											backgroundColor: "red",
+											padding: 10,
+											borderRadius: 8,
+											flexDirection: "row",
+											alignItems: "center",
+										}}
 										onPress={() => setPhoto(null)}
-									/>
-									<Button title="Analyze" onPress={analyzeReceipt} />
+									>
+										<MaterialIcons name="repeat" size={24} color="white" />
+										<Text style={{ color: "white", marginLeft: 5 }}>
+											Retake
+										</Text>
+									</TouchableOpacity>
+									<TouchableOpacity
+										style={{
+											backgroundColor: "#0077b6",
+											padding: 10,
+											borderRadius: 8,
+											flexDirection: "row",
+											alignItems: "center",
+										}}
+										onPress={analyzeReceipt}
+									>
+										<MaterialIcons name="compare" size={24} color="white" />
+										<Text style={{ color: "white", marginLeft: 5 }}>
+											Analyze
+										</Text>
+									</TouchableOpacity>
 								</>
 							)}
 						</View>
@@ -169,32 +236,33 @@ export default function App() {
 			<View style={{ flex: 1 }}>{renderContent()}</View>
 
 			{/* BOTTOM TAB BAR */}
-			<View style={styles.tabBar}>
-				<TouchableOpacity
-					onPress={() => setView("CAMERA")}
-					style={styles.tabItem}
-				>
-					<Text style={[styles.tabText, view === "CAMERA" && styles.activeTab]}>
-						📷 Scan
-					</Text>
-				</TouchableOpacity>
-				<TouchableOpacity
-					onPress={() => setView("HISTORY")}
-					style={styles.tabItem}
-				>
-					<Text
-						style={[styles.tabText, view === "HISTORY" && styles.activeTab]}
+			{view === "SPENDS" ? (
+				<View style={styles.tabBar}>
+					<TouchableOpacity
+						onPress={() => setView("CAMERA")}
+						style={styles.tabItem}
 					>
-						📜 History
-					</Text>
-				</TouchableOpacity>
-			</View>
+						<MaterialIcons name="document-scanner" size={26} color="white" />
+						<Text style={styles.tabText}>Scan</Text>
+					</TouchableOpacity>
+				</View>
+			) : (
+				<View style={styles.backButton}>
+					<MaterialIcons
+						name="arrow-back"
+						size={30}
+						color="white"
+						style={{ margin: 20 }}
+						onPress={() => setView("SPENDS")}
+					/>
+				</View>
+			)}
 		</SafeAreaView>
 	);
 }
 
 const styles = StyleSheet.create({
-	container: { flex: 1, backgroundColor: "black" },
+	container: { flex: 1, backgroundColor: "black", justifyContent: "center" },
 	camera: { flex: 1 },
 	preview: { flex: 1, resizeMode: "contain", opacity: 0.6 },
 	buttonContainer: {
@@ -248,14 +316,32 @@ const styles = StyleSheet.create({
 
 	// NEW STYLES
 	tabBar: {
+		position: "absolute",
+		left: 120,
+		right: 120,
+		bottom: 10,
+		flex: 1,
+		width: "auto",
+		paddingVertical: 16,
+		backgroundColor: "#0077b6",
+		padding: 10,
+		justifyContent: "space-around",
+		alignItems: "center",
 		flexDirection: "row",
-		backgroundColor: "#111",
-		paddingBottom: 20,
-		paddingTop: 15,
-		borderTopWidth: 1,
-		borderTopColor: "#333",
+		borderRadius: 30,
+		elevation: 5,
+		shadowColor: "black",
+		shadowOpacity: 0.3,
+		shadowOffset: { width: 0, height: 2 },
+		shadowRadius: 4,
 	},
-	tabItem: { flex: 1, alignItems: "center" },
-	tabText: { color: "gray", fontSize: 16, fontWeight: "600" },
-	activeTab: { color: "white" },
+	tabItem: {
+		flex: 1,
+		alignItems: "center",
+		flexDirection: "row",
+		justifyContent: "center",
+		gap: 8,
+	},
+	tabText: { color: "white", fontSize: 16, fontWeight: "600" },
+	backButton: { position: "absolute", top: 40, left: 10 },
 });
