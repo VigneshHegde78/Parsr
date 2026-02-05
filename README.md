@@ -3,12 +3,12 @@
 Your AI-Powered Personal Expense Tracker
 Parsr is a smart receipt scanner that uses on-device Machine Learning to turn physical receipts into digital data. Snap a photo, and Parsr automatically extracts the Merchant, Date, and Total amount, categorizes the expense, and visualizes your spending habits.
 
-📸 Screenshots
+<h3>📸 Screenshots</h3>
 | Camera Scan | AI Extraction | Analytics Dashboard |
 |---|---|---|
 | <img src="assets/screenshots/camera.png" width="200" alt="Camera UI" /> | <img src="assets/screenshots/editor.png" width="200" alt="Editor UI" /> | <img src="assets/screenshots/dashboard.png" width="200" alt="Charts UI" /> |
 > 
-🚀 Key Features
+<h3>🚀 Key Features</h3>
  * 🧠 On-Device OCR: Uses Google ML Kit to instantly read text from images without needing an internet connection.
  * ⚡ Smart Parsing: Custom algorithms (Regex) automatically detect the Total Amount, Date, and Merchant Name from messy receipt text.
  * 🏷️ Auto-Categorization: Intelligently guesses categories (e.g., "Starbucks" -> "Food", "Uber" -> "Travel").
@@ -16,7 +16,7 @@ Parsr is a smart receipt scanner that uses on-device Machine Learning to turn ph
  * 📊 Visual Analytics: Beautiful Donut Charts breakdown your spending by category.
  * 💾 Local Storage: All data is saved securely on your device using AsyncStorage.
  
-🛠️ Tech Stack
+<h3>🛠️ Tech Stack</h3>
  * Framework: React Native (Expo)
  * Language: TypeScript
  * AI/ML: @react-native-ml-kit/text-recognition
@@ -25,7 +25,7 @@ Parsr is a smart receipt scanner that uses on-device Machine Learning to turn ph
  * Storage: @react-native-async-storage
  * Icons: @expo/vector-icons
 
-🏃‍♂️ Getting Started
+<h3>🏃‍♂️ Getting Started</h3>
 
 1. Clone the Repository
 git clone https://github.com/VigneshHegde78/Parsr.git
@@ -46,14 +46,14 @@ npx expo run:ios
 Once the build finishes and the app installs on your device/emulator:
 npx expo start --dev-client
 
-🧩 How It Works
+<h3>🧩 How It Works</h3>
  * Capture: The user takes a photo of a receipt.
  * Process: The image is passed to the ML Kit Text Recognizer.
  * Parse: The raw text block is sent to src/utils/parser.ts, which uses Regular Expressions to hunt for patterns (dates MM/DD/YYYY, prices $xx.xx, and keywords like "Total").
  * Categorize: The merchant name is checked against a keyword list to auto-assign a category.
  * Visualize: The data is saved and aggregated into the Analytics Dashboard.
 
-🔮 Future Roadmap
+<h3>🔮 Future Roadmap</h3>
  * [ ] Cloud Sync: Sync data to Firebase/Supabase for cross-device access.
  * [ ] Export: Download monthly reports as PDF or CSV.
  * [ ] Budget Goals: Set monthly limits for specific categories (e.g., "Stop me if I spend > $200 on Coffee").
