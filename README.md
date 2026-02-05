@@ -1,4 +1,4 @@
-Parsr 🧾
+<h1>Parsr 🧾</h1>
 
 Your AI-Powered Personal Expense Tracker
 Parsr is a smart receipt scanner that uses on-device Machine Learning to turn physical receipts into digital data. Snap a photo, and Parsr automatically extracts the Merchant, Date, and Total amount, categorizes the expense, and visualizes your spending habits.
