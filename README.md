@@ -28,7 +28,7 @@ Parsr is a smart receipt scanner that uses on-device Machine Learning to turn ph
 🏃‍♂️ Getting Started
 
 1. Clone the Repository
-git clone https://github.com/your-username/parsr.git
+git clone https://github.com/VigneshHegde78/Parsr.git
 cd parsr
 
 2. Install Dependencies
@@ -57,6 +57,7 @@ npx expo start --dev-client
  * [ ] Cloud Sync: Sync data to Firebase/Supabase for cross-device access.
  * [ ] Export: Download monthly reports as PDF or CSV.
  * [ ] Budget Goals: Set monthly limits for specific categories (e.g., "Stop me if I spend > $200 on Coffee").
+
 <div align="center">
 <p>Built with ❤️ by Vignesh</p>
 </div>
