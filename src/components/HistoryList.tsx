@@ -8,7 +8,7 @@ import {
 	Image,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { MaterialIcons } from "@expo/vector-icons";
+import { MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import { AnalyticsBoard } from "./AnalyticsBoard"; // <--- Import the chart
 
 export const HistoryList = ({ refreshTrigger }: { refreshTrigger: number }) => {
@@ -60,7 +60,7 @@ export const HistoryList = ({ refreshTrigger }: { refreshTrigger: number }) => {
 				data={history}
 				keyExtractor={(item) => item.id}
 				// Add the Chart as the "Header" of the list so it scrolls with it
-				ListHeaderComponent={<AnalyticsBoard history={history} />}
+				ListHeaderComponent={history.length>0?<AnalyticsBoard history={history} />:<></>}
 				renderItem={({ item }) => {
 					const icon = getCategoryIcon(item.category);
 
@@ -101,8 +101,8 @@ export const HistoryList = ({ refreshTrigger }: { refreshTrigger: number }) => {
 					);
 				}}
 				ListEmptyComponent={
-					<View style={{ alignItems: "center", marginTop: 50 }}>
-						<MaterialIcons name="qr-code-scanner" size={60} color="#ddd" />
+					<View style={{ flex: 1, height: "100%", alignItems: "center", marginTop: 200}}>
+						<MaterialCommunityIcons name="receipt-text" size={60} color="#ddd" />
 						<Text style={styles.empty}>No receipts scanned yet.</Text>
 					</View>
 				}
