@@ -1,63 +1,90 @@
-<h1>Parsr 🧾</h1>
+# Parsr 🧾
 
-Your AI-Powered Personal Expense Tracker
-Parsr is a smart receipt scanner that uses on-device Machine Learning to turn physical receipts into digital data. Snap a photo, and Parsr automatically extracts the Merchant, Date, and Total amount, categorizes the expense, and visualizes your spending habits.
+**Parsr** is an on-device receipt scanner and personal expense tracker.
+It converts physical receipts into structured digital data using on-device machine learning and smart parsing — no internet required.
 
-<h3>📸 Screenshots</h3>
-<| Camera Scan | AI Extraction | Analytics Dashboard |
-|---|---|---|
+Snap a photo, and Parsr extracts the merchant name, date, and total amount, categorizes the expense, and visualizes your spending habits.
+
+---
+
+## 📸 Screenshots
+
+| Camera Scan | AI Extraction | Analytics Dashboard |
+|------------|---------------|---------------------|
 | <img src="assets/screenshots/camera.png" width="200" alt="Camera UI" /> | <img src="assets/screenshots/editor.png" width="200" alt="Editor UI" /> | <img src="assets/screenshots/dashboard.png" width="200" alt="Charts UI" /> |
-> 
-<h3>🚀 Key Features</h3>
- * 🧠 On-Device OCR: Uses Google ML Kit to instantly read text from images without needing an internet connection.
- * ⚡ Smart Parsing: Custom algorithms (Regex) automatically detect the Total Amount, Date, and Merchant Name from messy receipt text.
- * 🏷️ Auto-Categorization: Intelligently guesses categories (e.g., "Starbucks" -> "Food", "Uber" -> "Travel").
- * ✏️ Review & Edit: A clean interface to correct any AI mistakes and add payment methods (UPI, Card, Cash).
- * 📊 Visual Analytics: Beautiful Donut Charts breakdown your spending by category.
- * 💾 Local Storage: All data is saved securely on your device using AsyncStorage.
- 
-<h3>🛠️ Tech Stack</h3>
- * Framework: React Native (Expo)
- * Language: TypeScript
- * AI/ML: @react-native-ml-kit/text-recognition
- * Camera: expo-camera
- * Charts: react-native-gifted-charts
- * Storage: @react-native-async-storage
- * Icons: @expo/vector-icons
 
-<h3>🏃‍♂️ Getting Started</h3>
+---
 
-1. Clone the Repository
+## 🚀 Key Features
+
+- **🧠 On-Device OCR:** Uses Google ML Kit to extract text from receipts entirely offline.
+- **⚡ Smart Parsing:** Regex-based logic identifies totals, dates, and merchant names from unstructured text.
+- **🏷️ Auto-Categorization:** Assigns categories using merchant keyword matching (e.g., Starbucks → Food).
+- **✏️ Review & Edit:** Edit extracted data and add payment methods (UPI, Card, Cash).
+- **📊 Visual Analytics:** Donut charts break down spending by category.
+- **💾 Local Storage:** Data is stored securely on-device using AsyncStorage.
+
+---
+
+## 🛠️ Tech Stack
+
+- **Framework:** React Native (Expo)
+- **Language:** TypeScript
+- **ML / OCR:** @react-native-ml-kit/text-recognition
+- **Camera:** expo-camera
+- **Charts:** react-native-gifted-charts
+- **Storage:** @react-native-async-storage/async-storage
+- **Icons:** @expo/vector-icons
+
+---
+
+## 🏃‍♂️ Getting Started
+
+### 1️⃣ Clone the repository
+
+```bash
 git clone https://github.com/VigneshHegde78/Parsr.git
 cd parsr
+```
 
-2. Install Dependencies
+2️⃣ Install dependencies
+
+```bash
 npm install
+```
 
-3. Build the Native App (Crucial!)
-Since this app uses Native ML Kit libraries, it will not work in standard Expo Go. You must build a development client.
-For Android:
+3️⃣ Build the native app (Required)
+
+This project uses native ML Kit modules and will not work in Expo Go.
+
+Android
+```bash
 npx expo run:android
+```
 
-For iOS (Mac only):
+iOS (macOS only)
+```bash
 npx expo run:ios
+```
 
-4. Run the App
-Once the build finishes and the app installs on your device/emulator:
+4️⃣ Start the dev client
+
+```bash
 npx expo start --dev-client
+```
 
-<h3>🧩 How It Works</h3>
- * Capture: The user takes a photo of a receipt.
- * Process: The image is passed to the ML Kit Text Recognizer.
- * Parse: The raw text block is sent to src/utils/parser.ts, which uses Regular Expressions to hunt for patterns (dates MM/DD/YYYY, prices $xx.xx, and keywords like "Total").
- * Categorize: The merchant name is checked against a keyword list to auto-assign a category.
- * Visualize: The data is saved and aggregated into the Analytics Dashboard.
+## 🧩 How It Works
 
-<h3>🔮 Future Roadmap</h3>
- * [ ] Cloud Sync: Sync data to Firebase/Supabase for cross-device access.
- * [ ] Export: Download monthly reports as PDF or CSV.
- * [ ] Budget Goals: Set monthly limits for specific categories (e.g., "Stop me if I spend > $200 on Coffee").
+- **Capture:** User takes a photo of a receipt.
+- **Process:** Image is passed to ML Kit Text Recognizer.
+- **Parse:** Extracted text is processed using regex patterns to find dates, totals, and merchant names.
+- **Categorize:** Merchant keywords are matched to predefined categories.
+- **Visualize:** Structured data is saved and aggregated into analytics dashboards.
 
-<div align="center">
-<p>Built with ❤️ by Vignesh</p>
-</div>
+## 🔮 Roadmap
+
+- [ ] Cloud sync (Firebase / Supabase)
+- [ ] Export reports (PDF / CSV)
+- [ ] Budget limits per category
+
+<div align="center"> <p>Built with ❤️ by Vignesh</p> </div>
